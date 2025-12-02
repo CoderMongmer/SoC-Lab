@@ -130,7 +130,7 @@ module DatapathSingleCycle (
   wire [31:0] div_abs_op1 = (is_signed_div && rs1_data[31]) ? (~rs1_data + 1) : rs1_data;
   wire [31:0] div_abs_op2 = (is_signed_div && rs2_data[31]) ? (~rs2_data + 1) : rs2_data;
   wire [31:0] div_quotient_raw, div_remainder_raw;
-  divider_unsigned u_div (.iClk(clk), .iRst(rst), .dividend(div_abs_op1), .divisor(div_abs_op2), .quotient(div_quotient_raw), .remainder(div_remainder_raw));
+  divider_unsigned u_div (.i_dividend(div_abs_op1), .i_divisor(div_abs_op2), .o_quotient(div_quotient_raw), .o_remainder(div_remainder_raw));
   
   wire quotient_is_neg  = is_signed_div && (rs1_data[31] != rs2_data[31]);
   wire remainder_is_neg = is_signed_div && rs1_data[31];

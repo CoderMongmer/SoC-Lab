@@ -22,43 +22,33 @@
 
 
 module divider_unsigned (
-    input iClk,             // Not used in combinational version
-    input iRst,             // Not used in combinational version
-    input [31:0] dividend,
-    input [31:0] divisor,
-    output [31:0] quotient,  // Removed 'reg', now wire
-    output [31:0] remainder  // Removed 'reg', now wire
+    input  wire [31:0] i_dividend,
+    input  wire [31:0] i_divisor,
+    output wire [31:0] o_quotient,
+    output wire [31:0] o_remainder
 );
 
-    integer i;
-    reg [31:0] rem;
-    reg [31:0] div;
-    reg [31:0] q;
+    // We need wires to hold the remainder between stages.
+    // We need 33 wires: 1 for the initial input (0), and 32 for the outputs of the stages.
+    wire [31:0] remainder_chain [32:0];
 
-    // Combinational calculation
-    always @(*) begin
-        rem = 0;
-        div = dividend;
-        q = 0;
+    // The first remainder input is always 0 (as per the C code: int remainder = 0)
+    assign remainder_chain[0] = 32'b0;
 
-        for (i = 0; i < 32; i = i + 1) begin
-            rem = (rem << 1) | ((div >> 31) & 32'h1);  
-
-            if (rem < divisor) begin
-                q = (q << 1);
-            end else begin
-                rem = rem - divisor;
-                q = (q << 1) | 1'b1;
-            end
-            div = div << 1;
+    genvar i;
+    generate
+        for (i = 0; i < 32; i = i + 1) begin : div_stage
+            divu_1iter u_div_stage (
+                .i_rem         (remainder_chain[i]),      // Input from previous stage
+                .i_dividend_bit(i_dividend[31 - i]),      // Take MSB first (31 down to 0)
+                .i_divisor     (i_divisor),               // Divisor is same for all
+                .o_rem         (remainder_chain[i+1]),    // Output to next stage
+                .o_quot_bit    (o_quotient[31 - i])       // Fill quotient from MSB to LSB
+            );
         end
-    end
-    
-    // DIRECT OUTPUT ASSIGNMENT (Combinational)
-    assign quotient = q;
-    assign remainder = rem;
-    
-    // Removed the sequential always @(posedge iClk) block
-    
-endmodule
+    endgenerate
 
+    // The final remainder is the output of the last stage
+    assign o_remainder = remainder_chain[32];
+
+endmodule
